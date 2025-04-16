@@ -1,10 +1,9 @@
 import pandas as pd
-from sklearn.linear_model import LinearRegression
 import os
-from sklearn.model_selection import train_test_split
+# from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import xgboost as xg
-
+import pickle
 
 def preprocess_dataframe(df):
     """
@@ -60,12 +59,24 @@ best_xg = xg.XGBRegressor(booster = "gbtree", eta = 0.15, reg_lambda = 1.5, eval
 best_xg.fit(X_scaled, y_train_file)
 
 #Prediction on the unseen csv file
-filepath_unseen = filepath = os.path.join(os.getcwd(), "unseendf.csv")
+filepath_unseen = filepath = os.path.join(os.getcwd(), "unseendf_example.csv")
 x2 = pd.read_csv(filepath_unseen)
 
 x2 = preprocess_dataframe(x2)
 
+#One hot encoding messes up the Scaler object "fitting", so fill in missing binary stadium columns with 0
+missing_cols = set(X_train_file.columns) - set(x2.columns)
+for col in missing_cols:
+    x2[col] = 0
+
+
+#Ensure the columns are in the same order as the training data
+x2 = x2[X_train_file.columns]
 x2_scaled = scaler.transform(x2)
 x2['predtime'] = best_xg.predict(x2_scaled)
 
 x2.to_csv("~/Downloads/mypred.csv", index=False)
+
+#Pickle!
+with open("best_xg.pkl", "wb") as f:
+    pickle.dump(best_xg, f)
